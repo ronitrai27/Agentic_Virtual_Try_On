@@ -60,10 +60,10 @@ export function OutfitTryOnSlider({ className = "" }: OutfitTryOnSliderProps) {
       // ignore
     }
   };
-
+  ``;
   return (
     <div
-      className={`relative w-full max-w-5xl mx-auto h-[290px] sm:h-[300px] max-h-[300px] rounded-2xl border border-zinc-200/90 bg-neutral-50/80 shadow-[0_2px_16px_rgba(0,0,0,0.03)] overflow-hidden select-none ${className}`}
+      className={`relative w-full max-w-7xl 2xl:max-w-[1600px] mx-auto h-[290px] sm:h-[300px] md:h-[310px] max-h-[320px] rounded-lg border border-zinc-200/90 bg-neutral-50/80 shadow-[0_2px_16px_rgba(0,0,0,0.03)] overflow-hidden select-none ${className}`}
     >
       {/* Slides Container */}
       <div
@@ -73,24 +73,27 @@ export function OutfitTryOnSlider({ className = "" }: OutfitTryOnSliderProps) {
         {/* SLIDE 1: Try outfits with before/after model slider */}
         <div className="w-1/2 h-full flex items-stretch justify-between overflow-hidden">
           {/* Left Text & CTA */}
-          <div className="flex-1 flex flex-col items-start justify-center min-w-0 p-6 sm:p-7 lg:p-8 pr-4">
+          <div className="flex-1 flex flex-col items-start justify-center min-w-0 p-6 sm:p-8 lg:p-10 pr-4">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-orange-100/90 border border-orange-200/70 text-orange-950 text-[11px] font-medium mb-2.5">
               <Sparkles className="w-3 h-3 text-orange-600" />
               <span>Virtual Fitting Room</span>
             </div>
 
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-light tracking-tight text-zinc-900 leading-tight mb-2">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-light tracking-tight text-zinc-900 leading-tight mb-2">
               Try outfits, <br />
-              <span className="font-semibold text-zinc-950">find what fits you.</span>
+              <span className="font-semibold text-zinc-950">
+                find what fits you.
+              </span>
             </h2>
 
-            <p className="text-xs sm:text-sm text-zinc-600 font-normal leading-relaxed mb-4 max-w-sm line-clamp-2">
-              Instant garment swap with AI virtual fitting. Slide to view before and after.
+            <p className="text-xs sm:text-sm text-zinc-600 font-normal leading-relaxed mb-4 max-w-md line-clamp-2">
+              Instant garment swap with AI virtual fitting. Slide to view before
+              and after.
             </p>
 
             <Link
               href="/studio"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-sm group"
+              className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-full text-xs sm:text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-sm group"
             >
               <Drama className="w-3.5 h-3.5 text-orange-300" />
               <span>Go to studio</span>
@@ -99,7 +102,7 @@ export function OutfitTryOnSlider({ className = "" }: OutfitTryOnSliderProps) {
           </div>
 
           {/* Right Model Slider Rectangle (Zero padding, full height flush to edges) */}
-          <div className="h-full w-[220px] sm:w-[280px] md:w-[320px] lg:w-[360px] shrink-0 border-l border-zinc-200/80">
+          <div className="h-full w-[220px] sm:w-[280px] md:w-[340px] lg:w-[400px] xl:w-[460px] 2xl:w-[520px] shrink-0 border-l border-zinc-200/80">
             <div
               ref={containerRef}
               onPointerDown={handlePointerDown}
@@ -132,7 +135,10 @@ export function OutfitTryOnSlider({ className = "" }: OutfitTryOnSliderProps) {
               {/* Slim Straight Slider Divider Bar */}
               <div
                 className="absolute top-0 bottom-0 pointer-events-none z-10 flex items-center justify-center"
-                style={{ left: `${sliderPosition}%`, transform: "translateX(-50%)" }}
+                style={{
+                  left: `${sliderPosition}%`,
+                  transform: "translateX(-50%)",
+                }}
               >
                 <div className="w-[1.5px] h-full bg-white shadow-[0_0_8px_rgba(0,0,0,0.45)]" />
                 <div className="absolute top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-white/95 border border-zinc-300 shadow-md backdrop-blur-sm flex items-center justify-center text-zinc-700">
@@ -151,45 +157,48 @@ export function OutfitTryOnSlider({ className = "" }: OutfitTryOnSliderProps) {
           </div>
         </div>
 
-        {/* SLIDE 2: Future Details / AI Studio Canvas */}
+        {/* SLIDE 2: Wardrobe Studio */}
         <div className="w-1/2 h-full flex items-stretch justify-between overflow-hidden">
           {/* Left Text & CTA */}
-          <div className="flex-1 flex flex-col items-start justify-center min-w-0 p-6 sm:p-7 lg:p-8 pr-4">
+          <div className="flex-1 flex flex-col items-start justify-center min-w-0 p-6 sm:p-8 lg:p-10 pr-4">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-sky-100/90 border border-sky-200/70 text-sky-950 text-[11px] font-medium mb-2.5">
-              <Wand2 className="w-3 h-3 text-sky-600" />
-              <span>AI Fashion Studio</span>
+              <Sparkles className="w-3 h-3 text-sky-600" />
+              <span>Digital Wardrobe</span>
             </div>
 
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-light tracking-tight text-zinc-900 leading-tight mb-2">
-              Generate scenes, <br />
-              <span className="font-semibold text-zinc-950">customize your style.</span>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-light tracking-tight text-zinc-900 leading-tight mb-2">
+              Time to create <br />
+              <span className="font-semibold text-zinc-950">
+                your wardrobe.
+              </span>
             </h2>
 
-            <p className="text-xs sm:text-sm text-zinc-600 font-normal leading-relaxed mb-4 max-w-sm line-clamp-2">
-              Create editorial photoshoot backdrops, switch lighting environments, and pose your models.
+            <p className="text-xs sm:text-sm text-zinc-600 font-normal leading-relaxed mb-4 max-w-md line-clamp-2">
+              Organize your personal capsule closet, save favorite garments, and test matching pairs with AI.
             </p>
 
             <Link
               href="/studio"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs sm:text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-sm group"
+              className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-full text-xs sm:text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-sm group"
             >
               <Drama className="w-3.5 h-3.5 text-orange-300" />
-              <span>Enter Studio</span>
+              <span>Explore Wardrobe</span>
               <ArrowRight className="w-3.5 h-3.5 text-zinc-400 group-hover:translate-x-0.5 group-hover:text-white transition-all" />
             </Link>
           </div>
 
-          {/* Right Placeholder Visual Rectangle (Zero padding, full height flush to edges) */}
-          <div className="h-full w-[220px] sm:w-[280px] md:w-[320px] lg:w-[360px] shrink-0 border-l border-zinc-200/80 bg-gradient-to-br from-zinc-100 via-neutral-100 to-orange-50 flex flex-col items-center justify-center p-6 text-center">
-            <div className="w-12 h-12 rounded-2xl bg-white border border-zinc-200 shadow-sm flex items-center justify-center mb-3 text-orange-600">
-              <Wand2 className="w-6 h-6" />
+          {/* Right Model 4 Rectangle (Zero padding, full height flush to edges) */}
+          <div className="h-full w-[220px] sm:w-[280px] md:w-[340px] lg:w-[400px] xl:w-[460px] 2xl:w-[520px] shrink-0 border-l border-zinc-200/80 relative overflow-hidden bg-zinc-100">
+            <img
+              src="/model-4.png"
+              alt="Model Wardrobe"
+              className="w-full h-full object-cover object-top pointer-events-none"
+              draggable={false}
+            />
+            {/* Minimal Label Badge */}
+            <div className="absolute top-3 right-3 px-2 py-0.5 rounded bg-black/50 backdrop-blur-sm text-[10px] font-medium text-white pointer-events-none">
+              My Closet
             </div>
-            <p className="text-xs font-semibold text-zinc-900 mb-1">
-              Studio Features
-            </p>
-            <p className="text-[11px] text-zinc-500 font-normal max-w-[170px]">
-              Ready for your custom details and showcase tools.
-            </p>
           </div>
         </div>
       </div>
@@ -201,7 +210,9 @@ export function OutfitTryOnSlider({ className = "" }: OutfitTryOnSliderProps) {
             type="button"
             onClick={() => setActiveSlide(0)}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              activeSlide === 0 ? "w-6 bg-zinc-900" : "w-1.5 bg-zinc-300 hover:bg-zinc-400"
+              activeSlide === 0
+                ? "w-6 bg-zinc-900"
+                : "w-1.5 bg-zinc-300 hover:bg-zinc-400"
             }`}
             aria-label="Slide 1"
           />
@@ -209,7 +220,9 @@ export function OutfitTryOnSlider({ className = "" }: OutfitTryOnSliderProps) {
             type="button"
             onClick={() => setActiveSlide(1)}
             className={`h-1.5 rounded-full transition-all duration-300 ${
-              activeSlide === 1 ? "w-6 bg-zinc-900" : "w-1.5 bg-zinc-300 hover:bg-zinc-400"
+              activeSlide === 1
+                ? "w-6 bg-zinc-900"
+                : "w-1.5 bg-zinc-300 hover:bg-zinc-400"
             }`}
             aria-label="Slide 2"
           />
@@ -237,4 +250,3 @@ export function OutfitTryOnSlider({ className = "" }: OutfitTryOnSliderProps) {
     </div>
   );
 }
-
