@@ -2,9 +2,11 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { signIn } from "@/lib/auth-client";
+import { signIn, useSession } from "@/lib/auth-client";
+import { User as UserIcon, Loader2 } from "lucide-react";
 
 export const Header: React.FC = () => {
+  const { data: session, isPending } = useSession();
   const [loading, setLoading] = useState(false);
 
   const handleTryItNow = async () => {
@@ -23,26 +25,12 @@ export const Header: React.FC = () => {
   return (
     <header className="stage-header" role="banner">
       <div className="header-left">
-        <Link aria-label="VTOL FIT home" href="/" className="logo-link">
-          <div className="vtol-brand">
-            <span className="vtol-logo-icon" aria-hidden="true">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                <polyline points="2 17 12 22 22 17" />
-                <polyline points="2 12 12 17 22 12" />
-              </svg>
-            </span>
-            <span className="vtol-logo-text">VTOL FIT</span>
-          </div>
+        <Link aria-label="Home" href="/" className="logo-link">
+          <img
+            src="/logo.svg"
+            alt="Logo"
+            className="h-7 sm:h-8 w-auto object-contain"
+          />
         </Link>
 
         <nav className="meta" aria-label="Main Navigation">
@@ -56,15 +44,43 @@ export const Header: React.FC = () => {
       </div>
 
       <div>
-        <button
-          onClick={handleTryItNow}
-          disabled={loading}
-          className="try-now-btn"
-          aria-label="Try VTOL FIT now"
-        >
-          {loading ? "Signing in..." : "Try it now"}
-        </button>
+        {isPending ? (
+          <div className="try-now-btn" style={{ opacity: 0.8, pointerEvents: "none" }}>
+            <Loader2 className="w-4 h-4 animate-spin text-zinc-600" />
+          </div>
+        ) : session?.user ? (
+          <Link
+            href="/home"
+            className="try-now-btn"
+            aria-label="Continue to Dashboard"
+          >
+            {session.user.image ? (
+              <img
+                src={session.user.image}
+                alt={session.user.name || "User avatar"}
+                className="w-5.5 h-5.5 rounded-full object-cover border border-zinc-200"
+              />
+            ) : (
+              <div className="w-5.5 h-5.5 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center text-[10px] font-semibold text-zinc-700">
+                {session.user.name?.charAt(0).toUpperCase() || (
+                  <UserIcon className="w-3 h-3 text-zinc-600" />
+                )}
+              </div>
+            )}
+            <span>Continue</span>
+          </Link>
+        ) : (
+          <button
+            onClick={handleTryItNow}
+            disabled={loading}
+            className="try-now-btn"
+            aria-label="Try VTOL FIT now"
+          >
+            {loading ? "Signing in..." : "Try it now"}
+          </button>
+        )}
       </div>
     </header>
   );
 };
+
