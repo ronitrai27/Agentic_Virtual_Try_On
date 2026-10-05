@@ -138,9 +138,9 @@ export default function MinimalTryOn() {
       <h1 style={{ fontSize: 24, fontWeight: "bold", marginBottom: 8 }}>
         Live Video Virtual Try-On (Decart VTON)
       </h1>
-      <p style={{ color: "#888", marginBottom: 16 }}>
-        Status: <strong style={{ color: isConnected ? "#4ade80" : "#f87171" }}>{status}</strong>
-      </p>
+        <p style={{ color: "#888", marginBottom: 16 }}>
+          Status: <strong style={{ color: isConnected ? "#4ade80" : "#f87171" }}>{status}</strong>
+        </p>
 
       {/* Action Buttons */}
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>

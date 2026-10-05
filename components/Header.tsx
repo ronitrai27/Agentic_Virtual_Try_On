@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Sparkles, HelpCircle, ShieldCheck, Key } from "lucide-react";
+import { Sparkles, HelpCircle, Key } from "lucide-react";
 import { DocsModal } from "./DocsModal";
 
 interface HeaderProps {

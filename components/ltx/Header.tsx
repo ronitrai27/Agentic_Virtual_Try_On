@@ -1,9 +1,25 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
+import { signIn } from "@/lib/auth-client";
 
 export const Header: React.FC = () => {
+  const [loading, setLoading] = useState(false);
+
+  const handleTryItNow = async () => {
+    try {
+      setLoading(true);
+      await signIn.social({
+        provider: "google",
+        callbackURL: "/callback",
+      });
+    } catch (err) {
+      console.error("Sign in failed:", err);
+      setLoading(false);
+    }
+  };
+
   return (
     <header className="stage-header" role="banner">
       <div className="header-left">
@@ -40,13 +56,14 @@ export const Header: React.FC = () => {
       </div>
 
       <div>
-        <Link
-          href="/studio"
+        <button
+          onClick={handleTryItNow}
+          disabled={loading}
           className="try-now-btn"
           aria-label="Try VTOL FIT now"
         >
-          Try it now
-        </Link>
+          {loading ? "Signing in..." : "Try it now"}
+        </button>
       </div>
     </header>
   );
