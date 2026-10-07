@@ -9,8 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.86",
+    "@ai-sdk/react": "^4.0.133",
     "@decartai/sdk": "^0.2.4",
     "@upstash/redis": "^1.39.0",
+    "ai": "^7.0.130",
     "allotment": "^1.20.5",
     "better-auth": "^1.7.7",
     "clsx": "^2.1.1",
@@ -22,7 +25,8 @@
     "pg": "^8.23.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "tailwind-merge": "^3.7.0"
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

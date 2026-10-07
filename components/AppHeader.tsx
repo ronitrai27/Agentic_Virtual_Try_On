@@ -111,7 +111,7 @@ export function AppHeader() {
             />
           </Link>
 
-          <button
+          {/* <button
             type="button"
             onClick={toggleSidebar}
             className="p-1.5 rounded-lg text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/60 transition-colors cursor-pointer"
@@ -122,9 +122,9 @@ export function AppHeader() {
             ) : (
               <PanelLeftClose className="w-4 h-4" />
             )}
-          </button>
+          </button> */}
 
-          <div className="h-4 w-px bg-zinc-300 ml-1" />
+          <div className="h-5 w-px bg-zinc-600 ml-1" />
 
           <nav
             aria-label="Breadcrumb"
@@ -134,7 +134,7 @@ export function AppHeader() {
               breadcrumbItems.map((item, idx) => (
                 <React.Fragment key={item.href}>
                   {idx > 0 && (
-                    <ChevronRight className="w-3.5 h-3.5 text-zinc-400" />
+                    <ChevronRight className="w-4 h-4 text-zinc-600" />
                   )}
                   {item.isLast ? (
                     <span className="font-medium text-zinc-900 select-none">

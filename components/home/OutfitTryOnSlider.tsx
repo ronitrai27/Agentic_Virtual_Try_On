@@ -63,7 +63,7 @@ export function OutfitTryOnSlider({ className = "" }: OutfitTryOnSliderProps) {
   ``;
   return (
     <div
-      className={`relative w-full max-w-7xl 2xl:max-w-[1600px] mx-auto h-[290px] sm:h-[300px] md:h-[310px] max-h-[320px] rounded-lg border border-zinc-200/90 bg-neutral-50/80 shadow-[0_2px_16px_rgba(0,0,0,0.03)] overflow-hidden select-none ${className}`}
+      className={`relative w-full max-w-7xl 2xl:max-w-[1600px] mx-auto h-[290px] sm:h-[300px] md:h-[310px] max-h-[320px] rounded-lg border border-zinc-200 bg-neutral-50 shadow-[0_2px_16px_rgba(0,0,0,0.03)] overflow-hidden select-none ${className}`}
     >
       {/* Slides Container */}
       <div
@@ -93,7 +93,7 @@ export function OutfitTryOnSlider({ className = "" }: OutfitTryOnSliderProps) {
 
             <Link
               href="/studio"
-              className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-full text-xs sm:text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-sm group"
+              className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-lg text-xs sm:text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-sm group"
             >
               <Drama className="w-3.5 h-3.5 text-orange-300" />
               <span>Go to studio</span>
@@ -174,12 +174,13 @@ export function OutfitTryOnSlider({ className = "" }: OutfitTryOnSliderProps) {
             </h2>
 
             <p className="text-xs sm:text-sm text-zinc-600 font-normal leading-relaxed mb-4 max-w-md line-clamp-2">
-              Organize your personal capsule closet, save favorite garments, and test matching pairs with AI.
+              Organize your personal capsule closet, save favorite garments, and
+              test matching pairs with AI.
             </p>
 
             <Link
               href="/studio"
-              className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-full text-xs sm:text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-sm group"
+              className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-lg text-xs sm:text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-sm group"
             >
               <Drama className="w-3.5 h-3.5 text-orange-300" />
               <span>Explore Wardrobe</span>

@@ -45,12 +45,15 @@ export const Header: React.FC = () => {
 
       <div>
         {isPending ? (
-          <div className="try-now-btn" style={{ opacity: 0.8, pointerEvents: "none" }}>
+          <div
+            className="try-now-btn"
+            style={{ opacity: 0.8, pointerEvents: "none" }}
+          >
             <Loader2 className="w-4 h-4 animate-spin text-zinc-600" />
           </div>
         ) : session?.user ? (
           <Link
-            href="/home"
+            href="/callback"
             className="try-now-btn"
             aria-label="Continue to Dashboard"
           >
@@ -83,4 +86,3 @@ export const Header: React.FC = () => {
     </header>
   );
 };
-
