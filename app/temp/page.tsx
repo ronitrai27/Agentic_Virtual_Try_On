@@ -13,7 +13,6 @@ import {
   Plus,
   Trash2,
   Clock,
-  CheckCircle2,
   Send,
   Loader2,
   Tag,
@@ -55,7 +54,7 @@ interface ChatMessage {
 }
 
 export default function ShoppingAgentTestPage() {
-  // Input State (Guaranteed string, never undefined)
+  // Input State
   const [input, setInput] = useState<string>('');
 
   // Messages & Loading State
@@ -178,20 +177,23 @@ export default function ShoppingAgentTestPage() {
           const events = buffer.split('\n\n');
           buffer = events.pop() || '';
 
-          for (const ev of events) {
-            if (!ev.trim()) continue;
-            const lines = ev.split('\n');
-            let eventName = 'message';
-            let dataStr = '';
-
-            for (const line of lines) {
-              if (line.startsWith('event: ')) eventName = line.slice(7).trim();
-              if (line.startsWith('data: ')) dataStr = line.slice(6).trim();
-            }
-
-            if (!dataStr) continue;
+          for (const eventBlock of events) {
+            if (!eventBlock.trim()) continue;
 
             try {
+              const lines = eventBlock.split('\n');
+              let eventName = '';
+              let dataStr = '';
+
+              for (const line of lines) {
+                if (line.startsWith('event: ')) {
+                  eventName = line.replace('event: ', '').trim();
+                } else if (line.startsWith('data: ')) {
+                  dataStr = line.replace('data: ', '').trim();
+                }
+              }
+
+              if (!dataStr) continue;
               const data = JSON.parse(dataStr);
 
               if (eventName === 'status') {
@@ -286,15 +288,15 @@ export default function ShoppingAgentTestPage() {
 
         {/* Engine Pipeline Status & Model Badges */}
         <div className="flex items-center gap-2 text-xs">
-          {/* Active Engines */}
-          <div className="hidden lg:flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800 px-3 py-1.5 rounded-lg">
-            <span className="text-zinc-400 font-medium mr-1">Engines:</span>
+          {/* Active Pipeline Badges */}
+          <div className="hidden xl:flex items-center gap-1.5 bg-zinc-900/90 border border-zinc-800 px-3 py-1.5 rounded-lg">
+            <span className="text-zinc-500 text-[11px] font-mono">Parallel Pipeline:</span>
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               Google Shopping
             </span>
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               Amazon.in
             </span>
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
@@ -304,7 +306,6 @@ export default function ShoppingAgentTestPage() {
             <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded" title="Triggered only if results < 3">
               Bing (Fallback)
             </span>
-            <span className="text-[11px] text-zinc-500 line-through px-1.5 py-0.5">Yahoo</span>
           </div>
 
           {/* Model Selector */}
@@ -369,42 +370,35 @@ export default function ShoppingAgentTestPage() {
 
             <input
               type="file"
+              accept="image/*"
               ref={fileInputRef}
               onChange={handleFileUpload}
-              accept="image/*"
               className="hidden"
             />
 
-            {!uploadedImage ? (
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-zinc-700 hover:border-amber-500/60 transition-colors rounded-xl p-5 text-center cursor-pointer bg-zinc-950/40 hover:bg-zinc-900/50 group"
-              >
-                <div className="w-10 h-10 rounded-full bg-zinc-800 group-hover:bg-amber-500/20 text-zinc-400 group-hover:text-amber-400 flex items-center justify-center mx-auto mb-2 transition-colors">
-                  <Upload className="w-5 h-5" />
+            {uploadedImage ? (
+              <div className="relative aspect-video rounded-lg overflow-hidden border border-amber-500/40 bg-zinc-950">
+                <img src={uploadedImage} alt="Uploaded" className="w-full h-full object-contain" />
+                <div className="absolute bottom-1.5 left-1.5 right-1.5 bg-black/80 backdrop-blur px-2 py-1 rounded text-[10px] text-zinc-300 truncate">
+                  {uploadedImageName || 'Garment preview'}
                 </div>
-                <p className="text-xs font-medium text-zinc-300">Click to upload garment photo</p>
-                <p className="text-[11px] text-zinc-500 mt-1">Triggers Google Lens & Vision</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                <div className="relative rounded-lg overflow-hidden border border-zinc-700 bg-zinc-950 max-h-48 flex items-center justify-center">
-                  <img
-                    src={uploadedImage}
-                    alt="Uploaded garment"
-                    className="object-contain max-h-48 w-full"
-                  />
-                  <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-md text-[10px] text-emerald-400 font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Lens Ready
-                  </div>
-                </div>
-                <p className="text-[11px] text-zinc-400 truncate text-center">{uploadedImageName}</p>
-              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-6 border border-dashed border-zinc-700 hover:border-amber-500/60 rounded-xl flex flex-col items-center justify-center gap-2 bg-zinc-950/40 hover:bg-zinc-900/40 transition-colors group cursor-pointer"
+              >
+                <Upload className="w-6 h-6 text-zinc-500 group-hover:text-amber-400 transition-colors" />
+                <span className="text-xs text-zinc-400 group-hover:text-zinc-200">
+                  Upload shirt / pant photo for Vision + Lens
+                </span>
+                <span className="text-[10px] text-zinc-600">JPG, PNG, WebP</span>
+              </button>
             )}
           </div>
 
-          {/* Section 2: Wardrobe Memory Inspector (In-Page Fake DB) */}
-          <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-3.5 flex-1 flex flex-col space-y-3">
+          {/* Section 2: In-Page Wardrobe Memory */}
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-3.5 space-y-3 flex-1 flex flex-col">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-zinc-200 flex items-center gap-1.5 uppercase tracking-wider">
                 <Layers className="w-3.5 h-3.5 text-amber-400" />
@@ -416,7 +410,7 @@ export default function ShoppingAgentTestPage() {
             </div>
 
             <p className="text-[11px] text-zinc-400">
-              The agent accesses these items when you ask <span className="text-amber-300">"what should I wear below?"</span> or to pair with tested clothes.
+              The agent accesses these items when you ask <span className="text-amber-300">&quot;what should I wear below?&quot;</span> or to pair with tested clothes.
             </p>
 
             {/* Memory Items List */}
@@ -458,23 +452,33 @@ export default function ShoppingAgentTestPage() {
                   </div>
                   {item.triedAt && (
                     <p className="text-[9px] text-zinc-500 mt-1 flex items-center gap-1">
-                      <Clock className="w-2.5 h-2.5" /> Tried: {item.triedAt}
+                      <Clock className="w-2.5 h-2.5" /> Tried {item.triedAt}
                     </p>
                   )}
                 </div>
               ))}
             </div>
 
-            {/* Add Memory Form */}
+            {/* Add Custom Item */}
             <form onSubmit={addMemoryItem} className="pt-2 border-t border-zinc-800/80 space-y-2">
+              <span className="text-[11px] font-medium text-zinc-400">Add Test Garment to Memory:</span>
+              <input
+                type="text"
+                value={newMemTitle}
+                onChange={(e) => setNewMemTitle(e.target.value)}
+                placeholder="e.g. Black Oversized Graphic Tee..."
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-amber-500 text-zinc-100"
+              />
               <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Add item, e.g. Navy Polo"
-                  value={newMemTitle}
-                  onChange={(e) => setNewMemTitle(e.target.value)}
-                  className="flex-1 bg-zinc-950 border border-zinc-800 text-xs px-2.5 py-1.5 rounded-lg focus:outline-none focus:border-amber-500 text-zinc-100 placeholder:text-zinc-600"
-                />
+                <select
+                  value={newMemCategory}
+                  onChange={(e) => setNewMemCategory(e.target.value as any)}
+                  className="bg-zinc-950 border border-zinc-800 text-zinc-300 text-xs rounded-lg px-2 py-1.5 flex-1 focus:outline-none"
+                >
+                  <option value="top">Top</option>
+                  <option value="bottom">Bottom</option>
+                  <option value="shoes">Shoes</option>
+                </select>
                 <button
                   type="submit"
                   className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors"
@@ -500,7 +504,7 @@ export default function ShoppingAgentTestPage() {
                   onClick={() => setInput(presetPrompt)}
                   className="text-left text-xs bg-zinc-900/40 hover:bg-zinc-800/70 border border-zinc-800/70 hover:border-amber-500/40 text-zinc-300 px-2.5 py-1.5 rounded-lg transition-all"
                 >
-                  "{presetPrompt}"
+                  &quot;{presetPrompt}&quot;
                 </button>
               ))}
             </div>
@@ -529,10 +533,10 @@ export default function ShoppingAgentTestPage() {
                     <div className="bg-zinc-900/60 border border-zinc-800 p-3 rounded-xl text-left w-full space-y-1.5 text-xs">
                       <p className="font-medium text-zinc-300">Try asking:</p>
                       <p className="text-amber-400 cursor-pointer hover:underline" onClick={() => setInput('What should I wear below my red linen striped shirt?')}>
-                        👉 "What should I wear below my red linen striped shirt?"
+                        👉 &quot;What should I wear below my red linen striped shirt?&quot;
                       </p>
                       <p className="text-amber-400 cursor-pointer hover:underline" onClick={() => setInput('Find formal shirts for me')}>
-                        👉 "Find formal shirts for me"
+                        👉 &quot;Find formal shirts for me&quot;
                       </p>
                     </div>
                   </div>

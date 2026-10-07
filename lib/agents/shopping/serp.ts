@@ -26,13 +26,13 @@ export async function fetchGoogleShopping(
   url.searchParams.set('q', query);
   url.searchParams.set('gl', 'in');
   url.searchParams.set('hl', 'en');
-  url.searchParams.set('location', 'India');
   url.searchParams.set('api_key', apiKey);
 
   try {
     const res = await fetch(url.toString(), { signal });
     if (!res.ok) {
       const errText = await res.text().catch(() => res.statusText);
+      console.error(`❌ [Google Shopping] HTTP ${res.status}:`, errText.slice(0, 150));
       return {
         engine: 'google_shopping',
         success: false,
@@ -44,11 +44,11 @@ export async function fetchGoogleShopping(
     }
 
     const data = await res.json();
-    const rawList = data.shopping_results || [];
+    const rawList = data.shopping_results || data.inline_shopping_results || [];
     const products: Product[] = [];
 
     for (const item of rawList) {
-      const image = item.thumbnail;
+      const image = item.thumbnail || item.serpapi_thumbnail || item.image;
       if (!image) continue; // Drop items without an image
 
       const title = cleanString(item.title);
@@ -72,6 +72,15 @@ export async function fetchGoogleShopping(
       });
     }
 
+    console.log(`\n🛍️ [Google Shopping] Found ${products.length} products for "${query}" (${Date.now() - start}ms):`);
+    if (products.length === 0) {
+      console.log(`   (No items returned by SerpApi google_shopping)`);
+    } else {
+      products.slice(0, 4).forEach((p, idx) => {
+        console.log(`   ${idx + 1}. [${p.store}] ${p.title.slice(0, 50)} | ${p.priceText || 'Check Price'} | ${p.link.slice(0, 60)}...`);
+      });
+    }
+
     return {
       engine: 'google_shopping',
       success: true,
@@ -80,6 +89,7 @@ export async function fetchGoogleShopping(
       products,
     };
   } catch (err: any) {
+    console.error(`❌ [Google Shopping Error]:`, err.message);
     return {
       engine: 'google_shopping',
       success: false,
@@ -149,6 +159,15 @@ export async function fetchAmazon(
       });
     }
 
+    console.log(`\n📦 [Amazon.in] Found ${products.length} products for "${query}" (${Date.now() - start}ms):`);
+    if (products.length === 0) {
+      console.log(`   (No items returned by SerpApi amazon)`);
+    } else {
+      products.slice(0, 4).forEach((p, idx) => {
+        console.log(`   ${idx + 1}. [Amazon.in] ${p.title.slice(0, 50)} | ${p.priceText || 'Check Price'} | ${p.link.slice(0, 60)}...`);
+      });
+    }
+
     return {
       engine: 'amazon',
       success: true,
@@ -157,6 +176,7 @@ export async function fetchAmazon(
       products,
     };
   } catch (err: any) {
+    console.error(`❌ [Amazon Error]:`, err.message);
     return {
       engine: 'amazon',
       success: false,
@@ -317,7 +337,7 @@ export async function fetchBingFallback(
 }
 
 /**
- * Deduplicate and prioritize products
+ * Deduplicate and fairly interleave products across Google Shopping, Amazon, and Lens
  */
 export function dedupeAndRank(products: Product[], budgetMax?: number): Product[] {
   const seen = new Set<string>();
@@ -335,31 +355,33 @@ export function dedupeAndRank(products: Product[], budgetMax?: number): Product[
     deduped.push(item);
   }
 
-  // Rank:
-  // 1. Items with price within budget
-  // 2. High ratings
-  // 3. Engine priority: google_shopping > amazon > google_lens > bing
-  const engineWeights: Record<EngineType, number> = {
-    google_shopping: 10,
-    amazon: 8,
-    google_lens: 7,
-    bing: 3,
+  // Filter and prioritize within each engine
+  const filterByBudget = (list: Product[]) => {
+    if (!budgetMax) return list;
+    return list.sort((a, b) => {
+      const aOk = a.price && a.price <= budgetMax ? 1 : 0;
+      const bOk = b.price && b.price <= budgetMax ? 1 : 0;
+      return bOk - aOk;
+    });
   };
 
-  return deduped.sort((a, b) => {
-    let scoreA = engineWeights[a.engine] || 0;
-    let scoreB = engineWeights[b.engine] || 0;
+  const gshop = filterByBudget(deduped.filter((p) => p.engine === 'google_shopping'));
+  const amazon = filterByBudget(deduped.filter((p) => p.engine === 'amazon'));
+  const lens = filterByBudget(deduped.filter((p) => p.engine === 'google_lens'));
+  const bing = filterByBudget(deduped.filter((p) => p.engine === 'bing'));
 
-    if (budgetMax) {
-      if (a.price && a.price <= budgetMax) scoreA += 5;
-      if (b.price && b.price <= budgetMax) scoreB += 5;
-    }
+  // Fair Interleaving: Google Shopping (Myntra/Ajio/etc.) + Amazon.in alternating!
+  const interleaved: Product[] = [];
+  const maxLen = Math.max(gshop.length, amazon.length, lens.length, bing.length);
 
-    if (a.rating) scoreA += a.rating;
-    if (b.rating) scoreB += b.rating;
+  for (let i = 0; i < maxLen; i++) {
+    if (gshop[i]) interleaved.push(gshop[i]);
+    if (amazon[i]) interleaved.push(amazon[i]);
+    if (lens[i]) interleaved.push(lens[i]);
+    if (bing[i]) interleaved.push(bing[i]);
+  }
 
-    return scoreB - scoreA;
-  });
+  return interleaved;
 }
 
 /**
@@ -475,7 +497,10 @@ export async function searchParallelEngines(params: {
     }
   }
 
-  const finalProducts = dedupeAndRank(allProducts, params.budgetMax).slice(0, 10);
+  // Return top 12 balanced products
+  const finalProducts = dedupeAndRank(allProducts, params.budgetMax).slice(0, 12);
+
+  console.log(`\n⚡ [Parallel Engine Summary] Total Discovered: ${allProducts.length} -> Showing Top ${finalProducts.length} Balanced Results (Google Shopping + Amazon.in)`);
 
   return {
     query,

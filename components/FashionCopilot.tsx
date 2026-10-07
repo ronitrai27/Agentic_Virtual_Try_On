@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Paperclip, Send, Plus } from "lucide-react";
+import { Mascot } from "page-mascot";
 
 interface FashionCopilotProps {
   onSelectPrompt?: (prompt: string) => void;
@@ -50,6 +51,14 @@ export function FashionCopilot({ onSelectPrompt }: FashionCopilotProps) {
 
       {/* 2. Center Empty State */}
       <div className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col justify-center items-center">
+        <div className="mb-4 flex flex-col items-center justify-center">
+          <Mascot
+            directions="/mascots/glasses-directions.webp"
+            reactions="/mascots/glasses-reactions.webp"
+            size={86}
+          />
+        </div>
+
         <div className="w-full max-w-sm flex flex-col gap-2.5">
           {suggestions.map((suggestion, index) => (
             <button

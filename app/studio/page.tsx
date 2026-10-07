@@ -23,6 +23,7 @@ import {
   FolderOpen,
   Send,
   Check,
+  Shirt,
 } from "lucide-react";
 
 export default function StudioPage() {
@@ -34,12 +35,59 @@ export default function StudioPage() {
   const [isRawMinimized, setIsRawMinimized] = useState<boolean>(false);
   const [mode, setMode] = useState<"standard" | "fast">("standard");
   const [timerSeconds, setTimerSeconds] = useState<number>(0);
+  const [isVideoExpanded, setIsVideoExpanded] = useState<boolean>(false);
 
   // Garment Panel States
   const [activeTab, setActiveTab] = useState<"upload" | "wardrobe">("upload");
   const [gender, setGender] = useState<"male" | "female">("female");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [promptText, setPromptText] = useState<string>("");
+  const [isSavingWardrobe, setIsSavingWardrobe] = useState<boolean>(false);
+
+  // Silent frame capture & save prompt look to Neon Postgres
+  const handleSaveToWardrobe = async () => {
+    const video = remoteVideoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      showToast("No active video feed to capture", "info");
+      return;
+    }
+
+    try {
+      setIsSavingWardrobe(true);
+
+      // 1. Invisible HTML5 canvas grab (silent, 0ms, no flash/shutter)
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas context unavailable");
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const thumbnail = canvas.toDataURL("image/webp", 0.85);
+
+      // 2. Persist to Neon Postgres via API
+      const res = await fetch("/api/wardrobe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "Prompt generated",
+          type: "prompt",
+          image_data: thumbnail,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Database save failed");
+      }
+
+      showToast("Saved to your Wardrobe!", "success");
+    } catch (err: any) {
+      console.error("Failed to save to wardrobe:", err);
+      showToast("Failed to save. Please try again.", "info");
+    } finally {
+      setIsSavingWardrobe(false);
+    }
+  };
 
   // Preview background slides rotation (every 4s)
   const previewSlides = [
@@ -313,10 +361,6 @@ export default function StudioPage() {
           <h1 className="text-xl font-bold tracking-tight">
             Agentic Try-on Studio
           </h1>
-          <p className="text-sm text-neutral-800">
-            Try any outfit instantly with AI. Upload a photo, choose a garment,
-            or generate with a prompt.
-          </p>
         </div>
         <div className="flex items-center gap-6">
           <div className="relative flex items-center">
@@ -365,18 +409,43 @@ export default function StudioPage() {
           >
             <div className="h-full w-full p-4 bg-white flex gap-4 items-stretch overflow-hidden min-h-0">
               {/* --- LEFT SUB-SECTION: Video Try-on Camera --- */}
-              <div className="flex-1 min-w-[320px] flex flex-col h-full min-h-0">
+              <div className="flex-1 min-w-0 flex flex-col h-full min-h-0 transition-all duration-500 ease-in-out">
                 {/* Top Toolbar: Mode & Timer */}
                 <div className="w-full flex items-center justify-between pb-2.5 shrink-0">
-                  <div className="flex items-center gap-1.5 px-4 tracking-wide py-1.5 rounded-lg bg-neutral-100 border border-neutral-200 text-sm font-inter shadow-2xs">
-                    <Clock
-                      className={`w-3.5 h-3.5 ${
-                        isConnected
-                          ? "text-emerald-600 animate-pulse"
-                          : "text-black"
-                      }`}
-                    />
-                    <span>{formatTime(timerSeconds)}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 px-4 tracking-wide py-1.5 rounded-lg bg-neutral-100 border border-neutral-200 text-sm font-inter shadow-2xs">
+                      <Clock
+                        className={`w-3.5 h-3.5 ${
+                          isConnected
+                            ? "text-emerald-600 animate-pulse"
+                            : "text-black"
+                        }`}
+                      />
+                      <span>{formatTime(timerSeconds)}</span>
+                    </div>
+
+                    {/* Save to Wardrobe Button - only when trying live */}
+                    {isConnected && (
+                      <button
+                        type="button"
+                        onClick={handleSaveToWardrobe}
+                        disabled={isSavingWardrobe}
+                        className="flex items-center ml-5 gap-1.5 px-3 py-1.5 rounded-md bg-orange-300/80 hover:bg-orange-300 text-black text-sm shadow-xs transition active:scale-95 disabled:opacity-50 cursor-pointer animate-in fade-in zoom-in-95 duration-200"
+                        title="Save current look to Wardrobe"
+                      >
+                        {isSavingWardrobe ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span>Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Shirt className="w-3.5 h-3.5" />
+                            <span>Save to Wardrobe</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -466,9 +535,9 @@ export default function StudioPage() {
                     </div>
                   )}
 
-                  {/* Stop Camera Button */}
-                  {isConnected && (
-                    <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-2">
+                  {/* Top Right Controls: Stop Button & Full View Expand/Minimize */}
+                  <div className="absolute top-3.5 right-3.5 z-20 flex items-center gap-2">
+                    {isConnected && (
                       <button
                         onClick={stopSession}
                         className="px-3 py-1 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-semibold flex items-center gap-1 shadow-sm transition cursor-pointer"
@@ -476,8 +545,21 @@ export default function StudioPage() {
                         <Square className="w-2.5 h-2.5 fill-current" />
                         <span>Stop</span>
                       </button>
-                    </div>
-                  )}
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => setIsVideoExpanded((prev) => !prev)}
+                      className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-neutral-700 hover:text-neutral-900 border border-neutral-200/80 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer backdrop-blur-md"
+                      title={isVideoExpanded ? "Minimize to standard view" : "Expand to full view"}
+                    >
+                      {isVideoExpanded ? (
+                        <Minimize2 className="w-4 h-4" />
+                      ) : (
+                        <Maximize2 className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
 
                   {/* Small Collapsible Raw Feed */}
                   <div
@@ -538,7 +620,13 @@ export default function StudioPage() {
               </div>
 
               {/* --- RIGHT SUB-SECTION: Narrow Garment Panel (Fills full height) --- */}
-              <div className="w-[320px] shrink-0 flex flex-col h-full min-h-0 gap-2.5 bg-white">
+              <div
+                className={`flex flex-col h-full min-h-0 gap-2.5 bg-white transition-all duration-500 ease-in-out overflow-hidden ${
+                  isVideoExpanded
+                    ? "w-0 max-w-0 opacity-0 pointer-events-none -mr-4 border-transparent"
+                    : "w-[320px] max-w-[320px] opacity-100 shrink-0"
+                }`}
+              >
                 {/* 1. Top Tabs: Upload Garment | Bring from Wardrobe */}
                 <div className="flex p-1 bg-neutral-100 rounded-lg border border-neutral-200 text-xs font-medium shrink-0">
                   <button

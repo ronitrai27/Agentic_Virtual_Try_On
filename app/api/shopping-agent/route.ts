@@ -108,8 +108,8 @@ Identify if a product search is needed. Return ONLY a JSON object with:
               apiKey: serpApiKey,
             });
 
-            // Cap to top 10 best curated products
-            fetchedProducts = searchResult.products.slice(0, 10);
+            // Cap to top 12 best curated products
+            fetchedProducts = searchResult.products.slice(0, 12);
 
             sendEvent('tool_call', {
               name: 'searchProducts',
@@ -122,7 +122,7 @@ Identify if a product search is needed. Return ONLY a JSON object with:
               },
             });
 
-            // Emit top 10 products directly to frontend
+            // Emit top 12 products directly to frontend
             sendEvent('products', {
               query: searchResult.query,
               products: fetchedProducts,
@@ -135,7 +135,7 @@ Identify if a product search is needed. Return ONLY a JSON object with:
           sendEvent('status', { step: 'stylist', text: '✨ Formulating expert stylist advice...' });
 
           const compactProductSummary = fetchedProducts
-            .slice(0, 10)
+            .slice(0, 12)
             .map((p) => `- [${p.store}] ${p.title} | ${p.priceText || 'Check Price'}`)
             .join('\n');
 
