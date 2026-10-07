@@ -32,6 +32,8 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+import { ToastProvider } from "@/components/Toast";
+
 export default function RootLayout({
   children,
 }: {
@@ -54,7 +56,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased font-sans">{children}</body>
+      <body className="antialiased font-sans">
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

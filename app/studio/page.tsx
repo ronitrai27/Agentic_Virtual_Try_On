@@ -4,6 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { createDecartClient, models } from "@decartai/sdk";
 import { Allotment } from "allotment";
 import "allotment/dist/style.css";
+import { FashionCopilot } from "@/components/FashionCopilot";
+import { useToast } from "@/components/Toast";
+import { HowToUseDialog } from "@/components/HowToUseDialog";
 import {
   Camera,
   Video,
@@ -23,11 +26,13 @@ import {
 } from "lucide-react";
 
 export default function StudioPage() {
+  const { showToast } = useToast();
+  const [isHowToUseOpen, setIsHowToUseOpen] = useState<boolean>(false);
   const [status, setStatus] = useState<string>("Ready to start");
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isRawMinimized, setIsRawMinimized] = useState<boolean>(false);
-  const [mode, setMode] = useState<"Base" | "Pro">("Base");
+  const [mode, setMode] = useState<"standard" | "fast">("standard");
   const [timerSeconds, setTimerSeconds] = useState<number>(0);
 
   // Garment Panel States
@@ -36,13 +41,63 @@ export default function StudioPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [promptText, setPromptText] = useState<string>("");
 
+  // Preview background slides rotation (every 4s)
+  const previewSlides = [
+    "/western-2.png",
+    "/preview-1.png",
+    "/preview-2.png",
+    "/preview-3.png",
+  ];
+  const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
+
+  useEffect(() => {
+    if (isConnected) return;
+    const interval = setInterval(() => {
+      setCurrentSlideIndex((prev) => (prev + 1) % previewSlides.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isConnected, previewSlides.length]);
+
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clientRef = useRef<any>(null);
 
-  // Preset Garment Image Arrays
+  // Split layout container measurement
+  const splitContainerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
+
+  useEffect(() => {
+    if (!splitContainerRef.current) return;
+    const updateWidth = () => {
+      if (splitContainerRef.current) {
+        setContainerWidth(splitContainerRef.current.clientWidth);
+      }
+    };
+    updateWidth();
+
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.contentRect.width > 0) {
+          setContainerWidth(entry.contentRect.width);
+        }
+      }
+    });
+    ro.observe(splitContainerRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  const leftMinSize = containerWidth ? Math.round(containerWidth * 0.6) : 600;
+  const leftMaxSize = containerWidth
+    ? Math.round(containerWidth * 0.72)
+    : undefined;
+  const rightMinSize = containerWidth ? Math.round(containerWidth * 0.28) : 280;
+  const rightMaxSize = containerWidth
+    ? Math.round(containerWidth * 0.4)
+    : undefined;
+
+  // Preset Garment Image Arrays & Background Colors
   const femaleImages = [
     "/girl-1.png",
     "/girl-2.png",
@@ -50,6 +105,15 @@ export default function StudioPage() {
     "/girl-4.png",
     "/girl-5.png",
     "/girl-6.png",
+  ];
+
+  const femaleBgColors = [
+    "bg-pink-300/20 border-pink-300/60",
+    "bg-purple-300/10 border-purple-300/60",
+    "bg-blue-300/20 border-blue-300/60",
+    "bg-amber-300/30 border-amber-300/60",
+    "bg-emerald-300/30 border-emerald-300/60",
+    "bg-rose-300/20 border-rose-300/60",
   ];
 
   const maleImages = [
@@ -61,7 +125,17 @@ export default function StudioPage() {
     "/men-6.png",
   ];
 
+  const maleBgColors = [
+    "bg-green-300/40 border-green-300/60",
+    "bg-blue-300/40 border-blue-300/60",
+    "bg-orange-300/40 border-orange-300/60",
+    "bg-teal-300/40 border-teal-300/60",
+    "bg-indigo-300/40 border-indigo-300/60",
+    "bg-amber-300/40 border-amber-300/60",
+  ];
+
   const currentImages = gender === "female" ? femaleImages : maleImages;
+  const currentBgColors = gender === "female" ? femaleBgColors : maleBgColors;
 
   // Timer counter when connected
   useEffect(() => {
@@ -113,6 +187,7 @@ export default function StudioPage() {
 
       const realtimeClient = await client.realtime.connect(stream, {
         model,
+        speed: mode === "fast" ? "fast" : undefined,
         mirror: "auto",
         onRemoteStream: (editedStream) => {
           if (remoteVideoRef.current) {
@@ -146,7 +221,18 @@ export default function StudioPage() {
 
       clientRef.current = realtimeClient;
 
+      let initialImageBlob: Blob | undefined;
+      if (selectedImage) {
+        try {
+          const imgRes = await fetch(selectedImage);
+          initialImageBlob = await imgRes.blob();
+        } catch (e) {
+          console.warn("Could not load initial garment image blob:", e);
+        }
+      }
+
       await realtimeClient.set({
+        image: initialImageBlob,
         prompt:
           promptText ||
           "Substitute the current top with a luxury designer outfit with clean lines",
@@ -178,16 +264,38 @@ export default function StudioPage() {
   };
 
   const handleApplyPrompt = async () => {
-    if (!promptText.trim()) return;
-    if (clientRef.current) {
-      try {
+    if (!promptText.trim() && !selectedImage) {
+      showToast("Please select a garment or enter a prompt", "info");
+      return;
+    }
+
+    if (!isConnected || !clientRef.current) {
+      showToast("Click 'Start Camera & Try-On' to begin live stream", "info");
+      return;
+    }
+
+    try {
+      if (selectedImage) {
+        const res = await fetch(selectedImage);
+        const blob = await res.blob();
         await clientRef.current.set({
-          prompt: promptText,
+          image: blob,
+          prompt:
+            promptText.trim() ||
+            "Substitute the current top with this garment precisely fitting the body",
           enhance: true,
         });
-      } catch (err) {
-        console.error("Error updating prompt:", err);
+        showToast("Garment applied to Live Try-On", "success");
+      } else if (promptText.trim()) {
+        await clientRef.current.set({
+          prompt: promptText.trim(),
+          enhance: true,
+        });
+        showToast("Prompt applied to Live Try-On", "success");
       }
+    } catch (err) {
+      console.error("Error updating garment/prompt:", err);
+      showToast("Failed to update garment on live stream", "info");
     }
   };
 
@@ -210,46 +318,56 @@ export default function StudioPage() {
             or generate with a prompt.
           </p>
         </div>
+        <div className="flex items-center gap-6">
+          <div className="relative flex items-center">
+            <select
+              value={mode}
+              onChange={(e) => {
+                const newMode = e.target.value as "standard" | "fast";
+                setMode(newMode);
+                showToast(
+                  `Model preference changed to ${newMode === "fast" ? "Fast Mode (Ultra Low Latency)" : "Standard Mode"}`,
+                  "sparkles",
+                );
+              }}
+              className="appearance-none pl-8 pr-8 py-1.5 text-xs font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200/80 border border-neutral-300 rounded-lg cursor-pointer transition focus:outline-hidden"
+            >
+              <option value="standard">Model: Standard</option>
+              <option value="fast">Model: Fast</option>
+            </select>
+            <Layers className="w-3.5 h-3.5 text-neutral-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-3.5 h-3.5 text-neutral-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
 
-        {/* How to use? Button */}
-        <button
-          onClick={() =>
-            alert(
-              "1. Click 'Start Camera' to enable live video.\n2. AI renders live virtual try-on in the main frame.\n3. Use the right panel to upload garments or pick styles.",
-            )
-          }
-          className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-white hover:bg-neutral-100 border border-neutral-300 rounded-lg shadow-2xs transition-colors cursor-pointer"
-        >
-          <Play className="w-3 h-3 text-neutral-900 fill-neutral-900" />
-          <span>How to use?</span>
-        </button>
+          {/* How to use? Button */}
+          <button
+            type="button"
+            onClick={() => setIsHowToUseOpen(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-white hover:bg-neutral-100 border border-neutral-300 rounded-lg shadow-2xs transition-colors cursor-pointer"
+          >
+            <Play className="w-3 h-3 text-neutral-900 fill-neutral-900" />
+            <span>How to use?</span>
+          </button>
+        </div>
       </header>
 
       {/* Main Split Layout Container */}
-      <div className="flex-1 w-full h-full min-h-0 overflow-hidden relative bg-white">
-        <Allotment defaultSizes={[60, 40]}>
-          {/* ================= LEFT PANE: 60% Space (Video + Garment Selection) ================= */}
-          <Allotment.Pane minSize={600} preferredSize="60%">
+      <div
+        ref={splitContainerRef}
+        className="flex-1 w-full h-full min-h-0 overflow-hidden relative bg-white"
+      >
+        <Allotment defaultSizes={[70, 30]}>
+          {/* ================= LEFT PANE: 60% Min, 80% Max, 70% Default ================= */}
+          <Allotment.Pane
+            minSize={leftMinSize}
+            maxSize={leftMaxSize}
+            preferredSize="70%"
+          >
             <div className="h-full w-full p-4 bg-white flex gap-4 items-stretch overflow-hidden min-h-0">
               {/* --- LEFT SUB-SECTION: Video Try-on Camera --- */}
               <div className="flex-1 min-w-[320px] flex flex-col h-full min-h-0">
                 {/* Top Toolbar: Mode & Timer */}
                 <div className="w-full flex items-center justify-between pb-2.5 shrink-0">
-                  <div className="relative flex items-center">
-                    <select
-                      value={mode}
-                      onChange={(e) =>
-                        setMode(e.target.value as "Base" | "Pro")
-                      }
-                      className="appearance-none pl-8 pr-8 py-1.5 text-xs font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200/80 border border-neutral-300 rounded-lg cursor-pointer transition focus:outline-hidden"
-                    >
-                      <option value="Base">Mode: Base</option>
-                      <option value="Pro">Mode: Pro (HD)</option>
-                    </select>
-                    <Layers className="w-3.5 h-3.5 text-neutral-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    <ChevronDown className="w-3.5 h-3.5 text-neutral-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  </div>
-
                   <div className="flex items-center gap-1.5 px-4 tracking-wide py-1.5 rounded-lg bg-neutral-100 border border-neutral-200 text-sm font-inter shadow-2xs">
                     <Clock
                       className={`w-3.5 h-3.5 ${
@@ -274,36 +392,69 @@ export default function StudioPage() {
                     }`}
                   />
 
-                  {/* Idle State */}
+                  {/* Idle State with Auto-Sliding Images & White Bottom Overlay */}
                   {!isConnected && (
-                    <div className="flex flex-col items-center justify-center text-center p-6 z-10">
-                      <div className="w-14 h-14 rounded-xl bg-white border border-neutral-200 flex items-center justify-center mb-3.5 shadow-sm">
-                        <ScanFace className="w-7 h-7 text-neutral-800" />
+                    <>
+                      {/* Sliding Preview Images */}
+                      <div className="absolute inset-0 w-full h-full overflow-hidden">
+                        {previewSlides.map((src, index) => {
+                          const isCurrent = index === currentSlideIndex;
+                          const isPrevious =
+                            index ===
+                            (currentSlideIndex - 1 + previewSlides.length) %
+                              previewSlides.length;
+
+                          let transformClass =
+                            "translate-x-full opacity-0 pointer-events-none";
+                          if (isCurrent) {
+                            transformClass = "translate-x-0 opacity-100 z-1";
+                          } else if (isPrevious) {
+                            transformClass =
+                              "-translate-x-full opacity-0 z-0 pointer-events-none";
+                          }
+
+                          return (
+                            <img
+                              key={src}
+                              src={src}
+                              alt={`Try-On Preview ${index + 1}`}
+                              className={`absolute inset-0 w-full h-full object-cover object-top transition-all duration-1000 ease-in-out ${transformClass}`}
+                            />
+                          );
+                        })}
                       </div>
-                      <h3 className="text-base font-bold text-neutral-900 mb-1">
-                        Live Virtual Try-On
-                      </h3>
-                      <p className="text-xs text-neutral-500 max-w-[220px] mb-4">
-                        {status}
-                      </p>
-                      <button
-                        onClick={startSession}
-                        disabled={isLoading}
-                        className="px-5 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold rounded-xl shadow-sm flex items-center gap-2 transition active:scale-95 disabled:opacity-50 cursor-pointer"
-                      >
-                        {isLoading ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            <span>Connecting...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-3.5 h-3.5 fill-current" />
-                            <span>Start Camera &amp; Try-On</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-white via-white/70 to-black/10 z-2" />
+
+                      <div className="flex flex-col items-center justify-center text-center p-6 z-10 relative">
+                        <div className="w-14 h-14 rounded-xl bg-white/90 backdrop-blur-md border border-neutral-200 flex items-center justify-center mb-3.5 shadow-sm">
+                          <ScanFace className="w-7 h-7 text-neutral-800" />
+                        </div>
+                        <h3 className="text-base font-bold text-neutral-900 mb-1 drop-shadow-xs">
+                          Live Virtual Try-On
+                        </h3>
+                        <p className="text-xs text-neutral-600 max-w-[220px] mb-4 font-medium">
+                          {status}
+                        </p>
+                        <button
+                          onClick={startSession}
+                          disabled={isLoading}
+                          className="px-5 py-2.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold rounded-xl shadow-md flex items-center gap-2 transition active:scale-95 disabled:opacity-50 cursor-pointer"
+                        >
+                          {isLoading ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              <span>Connecting...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-3.5 h-3.5 fill-current" />
+                              <span>Start Camera &amp; Try-On</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </>
                   )}
 
                   {/* Live Status Badge */}
@@ -387,9 +538,9 @@ export default function StudioPage() {
               </div>
 
               {/* --- RIGHT SUB-SECTION: Narrow Garment Panel (Fills full height) --- */}
-              <div className="w-[320px] sm:w-[350px] shrink-0 flex flex-col h-full min-h-0 gap-2.5 bg-white">
+              <div className="w-[320px] shrink-0 flex flex-col h-full min-h-0 gap-2.5 bg-white">
                 {/* 1. Top Tabs: Upload Garment | Bring from Wardrobe */}
-                <div className="flex p-1 bg-neutral-100 rounded-xl border border-neutral-200 text-xs font-medium shrink-0">
+                <div className="flex p-1 bg-neutral-100 rounded-lg border border-neutral-200 text-xs font-medium shrink-0">
                   <button
                     type="button"
                     onClick={() => setActiveTab("upload")}
@@ -475,6 +626,8 @@ export default function StudioPage() {
                   <div className="grid grid-cols-2 gap-3 pb-1">
                     {currentImages.map((src, idx) => {
                       const isSelected = selectedImage === src;
+                      const bgStyle =
+                        currentBgColors[idx % currentBgColors.length];
                       return (
                         <button
                           key={idx}
@@ -482,10 +635,10 @@ export default function StudioPage() {
                           onClick={() =>
                             setSelectedImage(isSelected ? null : src)
                           }
-                          className={`h-32 w-full rounded-lg overflow-hidden border transition-all cursor-pointer bg-neutral-50 p-0.5 flex items-center justify-center relative group ${
+                          className={`h-32 w-full rounded-xl overflow-hidden border transition-all cursor-pointer p-1.5 flex items-center justify-center relative group ${bgStyle} ${
                             isSelected
-                              ? "border-neutral-900 ring-2 ring-neutral-900/20 shadow-xs bg-white"
-                              : "border-neutral-200 hover:border-neutral-200 hover:bg-white"
+                              ? "border-neutral-900 ring-2 ring-neutral-900/30 shadow-sm"
+                              : "hover:scale-[1.02] hover:shadow-xs"
                           }`}
                         >
                           <img
@@ -512,14 +665,14 @@ export default function StudioPage() {
                       value={promptText}
                       onChange={(e) => setPromptText(e.target.value)}
                       placeholder='e.g. "a red leather biker jacket with a zip front"'
-                      className="w-full text-xs p-2.5 pr-2 rounded-xl border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-neutral-400 resize-none placeholder:text-neutral-400 text-neutral-800"
+                      className="w-full text-xs p-2.5 pr-2 rounded-md border border-neutral-200 bg-neutral-50/50 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-neutral-400 resize-none placeholder:text-neutral-400 text-neutral-800"
                     />
                   </div>
 
                   <button
                     type="button"
                     onClick={handleApplyPrompt}
-                    className="w-full py-2 px-3 bg-neutral-900 hover:bg-neutral-800 text-white font-semibold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition active:scale-[0.99] cursor-pointer"
+                    className="w-full py-2 px-3 bg-neutral-900 hover:bg-neutral-800 text-white text-xs rounded-lg shadow-xs flex items-center justify-center gap-1.5 transition active:scale-[0.99] cursor-pointer"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>Try On Outfit</span>
@@ -529,10 +682,19 @@ export default function StudioPage() {
             </div>
           </Allotment.Pane>
 
-          {/* ================= RIGHT PANE: Agent Space (Empty for now) ================= */}
-          <Allotment.Pane minSize={300} preferredSize="40%">
-            <div className="h-full w-full bg-white border-l border-neutral-200 flex items-center justify-center relative">
-              {/* Empty agent space ready for next steps */}
+          {/* ================= RIGHT PANE: Fashion Copilot Agent UI ================= */}
+          <Allotment.Pane
+            minSize={rightMinSize}
+            maxSize={rightMaxSize}
+            preferredSize="30%"
+          >
+            <div className="h-full w-full bg-white border-l border-neutral-200 flex flex-col min-h-0 overflow-hidden relative">
+              <FashionCopilot
+                onSelectPrompt={(prompt) => {
+                  setPromptText(prompt);
+                  showToast(`Selected prompt: "${prompt}"`, "info");
+                }}
+              />
             </div>
           </Allotment.Pane>
         </Allotment>
@@ -554,6 +716,16 @@ export default function StudioPage() {
           background-color: #71717a !important;
         }
       `}</style>
+
+      {/* Linear-Style How To Use Dialog */}
+      <HowToUseDialog
+        isOpen={isHowToUseOpen}
+        onClose={() => setIsHowToUseOpen(false)}
+        onSelectPrompt={(prompt) => {
+          setPromptText(prompt);
+          showToast(`Prompt applied: "${prompt}"`, "info");
+        }}
+      />
     </div>
   );
 }

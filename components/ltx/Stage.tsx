@@ -1,12 +1,12 @@
 "use client";
 
-import React from 'react';
-import { useLtxEngine } from '../../hooks/useLtxEngine';
-import { MediaLayer } from './MediaLayer';
-import { HeroCopy } from './HeroCopy';
-import { Controller } from './Controller';
-import { Header } from './Header';
-import { LiveRegion } from './LiveRegion';
+import React from "react";
+import { useLtxEngine } from "../../hooks/useLtxEngine";
+import { MediaLayer } from "./MediaLayer";
+import { HeroCopy } from "./HeroCopy";
+import { Controller } from "./Controller";
+import { Header } from "./Header";
+import { LiveRegion } from "./LiveRegion";
 
 export const Stage: React.FC = () => {
   const {
@@ -35,7 +35,7 @@ export const Stage: React.FC = () => {
   } = useLtxEngine();
 
   return (
-    <main className={`stage ${titleHidden ? 'title-hidden' : ''}`}>
+    <main className={`stage ${titleHidden ? "title-hidden" : ""}`}>
       {/* 1. 8 Persistent <video> elements */}
       <MediaLayer visibleVideoId={visibleVideoId} videoRefs={videoRefs} />
 

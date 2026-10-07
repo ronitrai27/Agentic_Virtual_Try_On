@@ -25,7 +25,7 @@ interface SidebarProps {
 export function Sidebar({ children, headerContent }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
-  const { isCollapsed, toggleSidebar } = useSidebar();
+  const { isCollapsed, toggleSidebar, setIsCollapsed } = useSidebar();
 
   const navItems = [
     { label: "Home", href: "/home", icon: Home },
@@ -79,6 +79,11 @@ export function Sidebar({ children, headerContent }: SidebarProps) {
               <Link
                 key={item.label}
                 href={item.href}
+                onClick={() => {
+                  if (item.href === "/home/studio") {
+                    setIsCollapsed(true);
+                  }
+                }}
                 title={isCollapsed ? item.label : undefined}
                 className={`flex items-center ${
                   isCollapsed
@@ -123,10 +128,10 @@ export function Sidebar({ children, headerContent }: SidebarProps) {
           <div className="flex justify-center group relative">
             <button
               type="button"
-              className="p-2.5 rounded-xl bg-orange-100 hover:bg-orange-200 text-orange-600 border border-orange-200/80 transition-colors shadow-2xs cursor-pointer"
+              className="p-2.5 rounded-md bg-orange-100 hover:bg-orange-200 text-orange-600 border border-orange-200/80 transition-colors shadow-2xs cursor-pointer"
               title="Purchase More Credits"
             >
-              <Crown className="w-6 h-6 fill-orange-500 text-orange-600" />
+              <Crown className="w-4 h-4 fill-orange-500 text-orange-600" />
             </button>
             <div className="absolute left-full ml-3 px-2.5 py-1.5 bg-neutral-900 text-white text-base rounded-md opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap shadow-lg">
               <p className="font-semibold">Out of Credits?</p>
