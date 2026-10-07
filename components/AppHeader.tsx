@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut, signIn } from "@/lib/auth-client";
+import { useSidebar } from "./SidebarContext";
 import {
   Loader2,
   LogOut,
@@ -13,10 +14,13 @@ import {
   User as UserIcon,
   LucideALargeSmall,
   Drama,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
 export function AppHeader() {
   const { data: session, isPending } = useSession();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const pathname = usePathname();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
@@ -107,7 +111,20 @@ export function AppHeader() {
             />
           </Link>
 
-          <div className="h-5 w-px bg-zinc-800 ml-2" />
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className="p-1.5 rounded-lg text-neutral-500 hover:text-neutral-900 hover:bg-neutral-200/60 transition-colors cursor-pointer"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen className="w-4 h-4" />
+            ) : (
+              <PanelLeftClose className="w-4 h-4" />
+            )}
+          </button>
+
+          <div className="h-4 w-px bg-zinc-300 ml-1" />
 
           <nav
             aria-label="Breadcrumb"
