@@ -2,7 +2,7 @@
 
 <img src="public/logo.svg" alt="VTOL FIT" width="72" />
 
-# VTOL FIT
+# AGENTIC FASHION COPILOT (FUTURE OF FASHION)
 
 ### Agentic Fashion Copilot — powered by **SerpApi** × **Decart**
 
