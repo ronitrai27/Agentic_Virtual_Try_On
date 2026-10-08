@@ -33,6 +33,7 @@ export const viewport: Viewport = {
 };
 
 import { ToastProvider } from "@/components/Toast";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 
 export default function RootLayout({
   children,
@@ -57,7 +58,9 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased font-sans">
-        <ToastProvider>{children}</ToastProvider>
+        <QueryProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </QueryProvider>
       </body>
     </html>
   );

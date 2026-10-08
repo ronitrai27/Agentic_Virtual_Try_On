@@ -48,3 +48,33 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    await initWardrobeTable();
+    const body = await request.json();
+    const { ids, id } = body;
+    const targetIds = ids || (id ? [id] : []);
+
+    if (!targetIds || targetIds.length === 0) {
+      return NextResponse.json(
+        { error: "No item IDs provided for deletion" },
+        { status: 400 }
+      );
+    }
+
+    const db = getDbPool();
+    await db.query(
+      `DELETE FROM wardrobe_items WHERE id = ANY($1::uuid[])`,
+      [targetIds]
+    );
+
+    return NextResponse.json({ success: true, deletedCount: targetIds.length });
+  } catch (error: any) {
+    console.error("Failed to delete wardrobe items:", error);
+    return NextResponse.json(
+      { error: "Failed to delete wardrobe items", details: error.message },
+      { status: 500 }
+    );
+  }
+}

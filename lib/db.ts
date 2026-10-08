@@ -27,3 +27,14 @@ export async function initWardrobeTable() {
     );
   `);
 }
+
+export async function initCreditsTable() {
+  const db = getDbPool();
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS user_credits (
+      user_id TEXT PRIMARY KEY,
+      credits INTEGER NOT NULL DEFAULT 100,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+}

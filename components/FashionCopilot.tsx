@@ -9,6 +9,7 @@ import {
   X,
   ExternalLink,
   Shirt,
+  ChevronDown,
 } from "lucide-react";
 import { Mascot } from "page-mascot";
 import { DotmCircular15 } from "@/components/ui/dotm-circular-15";
@@ -22,6 +23,51 @@ interface ChatMessage {
   image?: string | null;
   toolCalls?: Array<{ name: string; result: any }>;
   products?: Product[];
+}
+
+function ToolCallsDropdown({
+  toolCalls,
+}: {
+  toolCalls: Array<{ name: string; result?: any }>;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  if (!toolCalls || toolCalls.length === 0) return null;
+
+  const count = toolCalls.length;
+  const label = `${count} ${count === 1 ? "tool" : "tools"} executed`;
+
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-600 hover:text-neutral-900 bg-neutral-100 hover:bg-neutral-200/70 border border-neutral-200 px-2 py-0.5 rounded transition-all cursor-pointer w-fit select-none"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        <span>{label}</span>
+        <ChevronDown
+          className={`w-3 h-3 text-neutral-500 transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="flex flex-wrap gap-1.5 pl-0.5 pt-0.5">
+          {toolCalls.map((tc, idx) => (
+            <div
+              key={idx}
+              className="flex items-center gap-1.5 text-[10.5px] font-mono text-white bg-neutral-900 border border-neutral-800 px-2.5 py-0.5 rounded shadow-2xs"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>{tc.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 interface FashionCopilotProps {
@@ -44,9 +90,9 @@ export function FashionCopilot({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const suggestions = [
-    "Recomend me outfits based on my previous prefernces.",
+    "Recommend me outfits based on my previous preferences.",
     "Get me some Red men jackets",
-    "Find best men shirts under 500 .",
+    "Find best men shirts under 500.",
   ];
 
   useEffect(() => {
@@ -230,14 +276,14 @@ export function FashionCopilot({
   return (
     <div className="h-full w-full flex flex-col bg-white text-zinc-900 min-h-0 overflow-hidden select-none">
       {/* 1. Top Header */}
-      <header className="px-4 py-2.5 border-b border-neutral-200 flex items-center justify-between shrink-0 bg-white">
+      <header className="px-4 py-2 border-b border-neutral-200 flex items-center justify-between shrink-0 bg-white">
         <div className="flex items-center gap-2">
           {messages.length > 0 && (
             <div className="flex items-center justify-center shrink-0">
               <Mascot
                 directions="/mascots/glasses-directions.webp"
                 reactions="/mascots/glasses-reactions.webp"
-                size={26}
+                size={36}
               />
             </div>
           )}
@@ -311,19 +357,9 @@ export function FashionCopilot({
                   </div>
                 ) : (
                   <div className="flex flex-col items-start gap-2.5 max-w-full w-full">
-                    {/* Minimal Tool Calls */}
+                    {/* Collapsible Tool Calls */}
                     {msg.toolCalls && msg.toolCalls.length > 0 && (
-                      <div className="flex flex-col gap-1 w-full">
-                        {msg.toolCalls.map((tc, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-1.5 text-[11px] font-mono text-white bg-neutral-900 border border-neutral-800 px-2.5 py-0.5 rounded w-fit shadow-2xs"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                            <span>{tc.name}</span>
-                          </div>
-                        ))}
-                      </div>
+                      <ToolCallsDropdown toolCalls={msg.toolCalls} />
                     )}
 
                     {/* Text Content */}

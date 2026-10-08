@@ -2,6 +2,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { searchParallelEngines } from './serp';
 import { analyzeGarmentImage } from './vision';
+import { getDbPool, initWardrobeTable } from '@/lib/db';
 import type { WardrobeMemoryItem } from './types';
 
 export function createShoppingTools(options: {
@@ -45,7 +46,34 @@ export function createShoppingTools(options: {
       },
     }),
 
-    // 2. Read In-Page Wardrobe Memory
+    // 2. Fetch Recent Wardrobe Outfits directly from Postgres (up to 3 recent items)
+    getRecentWardrobeOutfits: tool({
+      description:
+        'Retrieve up to 3 most recently saved wardrobe outfits and garments from the user database. Call this whenever the user asks for recommendations based on their preferences, asks what to wear with their clothes, or references their wardrobe.',
+      inputSchema: z.object({
+        limit: z.number().default(3).describe('Number of recent wardrobe fits to retrieve (default 3)'),
+      }),
+      execute: async ({ limit = 3 }) => {
+        try {
+          await initWardrobeTable();
+          const db = getDbPool();
+          const result = await db.query(
+            `SELECT id, title, type, image_data, created_at FROM wardrobe_items ORDER BY created_at DESC LIMIT $1`,
+            [limit]
+          );
+          const rows = result.rows || [];
+          return {
+            count: rows.length,
+            items: rows.map(r => ({ id: r.id, title: r.title, type: r.type, createdAt: r.created_at })),
+            message: rows.length > 0 ? `Retrieved ${rows.length} recent wardrobe items.` : 'No outfits found in wardrobe.',
+          };
+        } catch (e: any) {
+          return { count: 0, items: [], message: e.message };
+        }
+      },
+    }),
+
+    // 3. Read In-Page Wardrobe Memory
     readWardrobeMemory: tool({
       description:
         'Retrieve the user recent tried garments and wardrobe history (e.g. Red linen striped shirt, Checked shirts full armed). Always call this when the user asks what to wear below, what matches their previous clothes, or references items they tried.',

@@ -1,7 +1,7 @@
 import type { EngineType, Product, EngineResult, ParallelSearchResponse } from './types';
 
 const SERPAPI_BASE = 'https://serpapi.com/search.json';
-const ENGINE_TIMEOUT_MS = 8000;
+const ENGINE_TIMEOUT_MS = 20000;
 
 function cleanString(str?: string): string {
   return (str || '').replace(/\s+/g, ' ').trim();
@@ -337,9 +337,37 @@ export async function fetchBingFallback(
 }
 
 /**
- * Deduplicate and fairly interleave products across Google Shopping, Amazon, and Lens
+ * Detect whether a product originates from Amazon (checking link, store name, and engine).
  */
-export function dedupeAndRank(products: Product[], budgetMax?: number): Product[] {
+export function isAmazonProduct(p: Product): boolean {
+  const store = (p.store || '').toLowerCase();
+  const link = (p.link || '').toLowerCase();
+  const engine = (p.engine || '').toLowerCase();
+
+  return (
+    engine === 'amazon' ||
+    store.includes('amazon') ||
+    link.includes('amazon.in') ||
+    link.includes('amazon.com') ||
+    link.includes('amzn.to') ||
+    link.includes('amazon.') ||
+    link.includes('a.co') ||
+    link.includes('/amazon')
+  );
+}
+
+/**
+ * Deduplicate and filter products:
+ * - Ensures AT MOST 8 products from Amazon (amazon.in / amazon links / amazon store).
+ * - Prioritizes and randomly/fairly mixes diverse non-Amazon stores (Myntra, Ajio, Flipkart, Meesho, Zara, Lens, etc.) for the rest.
+ * - Caps total returned items at maxTotal (default 12).
+ */
+export function dedupeAndRank(
+  products: Product[],
+  budgetMax?: number,
+  maxTotal: number = 12,
+  maxAmazon: number = 8
+): Product[] {
   const seen = new Set<string>();
   const deduped: Product[] = [];
 
@@ -365,23 +393,70 @@ export function dedupeAndRank(products: Product[], budgetMax?: number): Product[
     });
   };
 
-  const gshop = filterByBudget(deduped.filter((p) => p.engine === 'google_shopping'));
-  const amazon = filterByBudget(deduped.filter((p) => p.engine === 'amazon'));
-  const lens = filterByBudget(deduped.filter((p) => p.engine === 'google_lens'));
-  const bing = filterByBudget(deduped.filter((p) => p.engine === 'bing'));
+  const sortedList = filterByBudget(deduped);
 
-  // Fair Interleaving: Google Shopping (Myntra/Ajio/etc.) + Amazon.in alternating!
-  const interleaved: Product[] = [];
-  const maxLen = Math.max(gshop.length, amazon.length, lens.length, bing.length);
+  // Classify products into Amazon vs Non-Amazon based on URL, store, and engine
+  const amazonPool: Product[] = [];
+  const nonAmazonPool: Product[] = [];
 
-  for (let i = 0; i < maxLen; i++) {
-    if (gshop[i]) interleaved.push(gshop[i]);
-    if (amazon[i]) interleaved.push(amazon[i]);
-    if (lens[i]) interleaved.push(lens[i]);
-    if (bing[i]) interleaved.push(bing[i]);
+  for (const p of sortedList) {
+    if (isAmazonProduct(p)) {
+      amazonPool.push(p);
+    } else {
+      nonAmazonPool.push(p);
+    }
   }
 
-  return interleaved;
+  // Shuffle non-Amazon products to give random variety across external retailers (Myntra, Ajio, Flipkart, etc.)
+  const shuffledNonAmazon = [...nonAmazonPool].sort(() => 0.5 - Math.random());
+
+  // Cap Amazon items strictly at maxAmazon (default 8)
+  const allowedAmazonCount = Math.min(amazonPool.length, maxAmazon);
+  const selectedAmazon = amazonPool.slice(0, allowedAmazonCount);
+
+  // Determine how many non-Amazon items to take
+  const neededNonAmazon = Math.max(maxTotal - selectedAmazon.length, 4);
+  const selectedNonAmazon = shuffledNonAmazon.slice(
+    0,
+    Math.min(shuffledNonAmazon.length, Math.max(neededNonAmazon, maxTotal - selectedAmazon.length))
+  );
+
+  // Fairly interleave non-Amazon and Amazon so users see a balanced blend
+  const interleaved: Product[] = [];
+  const maxIter = Math.max(selectedNonAmazon.length, selectedAmazon.length);
+
+  for (let i = 0; i < maxIter; i++) {
+    if (selectedNonAmazon[i]) interleaved.push(selectedNonAmazon[i]);
+    if (selectedAmazon[i]) interleaved.push(selectedAmazon[i]);
+  }
+
+  // If there are remaining slots and more items available
+  if (interleaved.length < maxTotal) {
+    for (const p of shuffledNonAmazon) {
+      if (interleaved.length >= maxTotal) break;
+      if (!interleaved.some((x) => x.id === p.id)) {
+        interleaved.push(p);
+      }
+    }
+    let currentAmazonCount = interleaved.filter(isAmazonProduct).length;
+    for (const p of selectedAmazon) {
+      if (interleaved.length >= maxTotal || currentAmazonCount >= maxAmazon) break;
+      if (!interleaved.some((x) => x.id === p.id)) {
+        interleaved.push(p);
+        currentAmazonCount++;
+      }
+    }
+  }
+
+  const finalResults = interleaved.slice(0, maxTotal);
+  const finalAmazonCount = finalResults.filter(isAmazonProduct).length;
+  const finalNonAmazonCount = finalResults.length - finalAmazonCount;
+
+  console.log(
+    `🛍️ [Store Diversity Balance] Total: ${finalResults.length} items (Amazon: ${finalAmazonCount} [max ${maxAmazon}], Non-Amazon: ${finalNonAmazonCount})`
+  );
+
+  return finalResults;
 }
 
 /**

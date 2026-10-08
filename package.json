@@ -13,6 +13,7 @@
     "@ai-sdk/react": "^4.0.133",
     "@base-ui/react": "^1.8.0",
     "@decartai/sdk": "^0.2.4",
+    "@tanstack/react-query": "^5.104.1",
     "@upstash/redis": "^1.39.0",
     "ai": "^7.0.130",
     "allotment": "^1.20.5",

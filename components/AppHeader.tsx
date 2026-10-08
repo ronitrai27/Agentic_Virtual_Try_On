@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut, signIn } from "@/lib/auth-client";
 import { useSidebar } from "./SidebarContext";
+import { useCreditsQuery } from "@/lib/queries/credits";
 import {
   Loader2,
   LogOut,
@@ -14,12 +15,14 @@ import {
   User as UserIcon,
   LucideALargeSmall,
   Drama,
+  Coins,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
 
 export function AppHeader() {
   const { data: session, isPending } = useSession();
+  const { data: credits = 100 } = useCreditsQuery(session?.user?.id);
   const { isCollapsed, toggleSidebar } = useSidebar();
   const pathname = usePathname();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -158,8 +161,20 @@ export function AppHeader() {
           </nav>
         </div>
 
-        {/* Right Side: Studio Button & User Dropdown */}
-        <div className="flex items-center gap-3">
+        {/* Right Side: Credits, Studio Button & User Dropdown */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Credits Counter */}
+          <div
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium bg-white border border-neutral-200 rounded-sm text-neutral-900 select-none shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+            title="Available Try-On Credits"
+          >
+            <Coins className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <span className="text-neutral-600">Credits:</span>
+            <strong className="font-semibold text-neutral-900 font-mono text-[11.5px]">
+              {credits}
+            </strong>
+          </div>
+
           {/* Studio Button */}
           <Link
             href="/studio"
