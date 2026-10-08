@@ -230,10 +230,21 @@ export function FashionCopilot({
   return (
     <div className="h-full w-full flex flex-col bg-white text-zinc-900 min-h-0 overflow-hidden select-none">
       {/* 1. Top Header */}
-      <header className="px-4 py-3 border-b border-neutral-200 flex items-center justify-between shrink-0 bg-white">
-        <h2 className="text-sm font-semibold text-neutral-800">
-          Fashion copilot
-        </h2>
+      <header className="px-4 py-2.5 border-b border-neutral-200 flex items-center justify-between shrink-0 bg-white">
+        <div className="flex items-center gap-2">
+          {messages.length > 0 && (
+            <div className="flex items-center justify-center shrink-0">
+              <Mascot
+                directions="/mascots/glasses-directions.webp"
+                reactions="/mascots/glasses-reactions.webp"
+                size={26}
+              />
+            </div>
+          )}
+          <h2 className="text-sm font-semibold text-neutral-800">
+            Fashion copilot
+          </h2>
+        </div>
         <button
           type="button"
           onClick={handleNewChat}
