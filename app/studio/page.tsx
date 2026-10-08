@@ -374,22 +374,22 @@ export default function StudioPage() {
                   "sparkles",
                 );
               }}
-              className="appearance-none pl-8 pr-8 py-1.5 text-xs font-semibold text-neutral-700 bg-neutral-100 hover:bg-neutral-200/80 border border-neutral-300 rounded-lg cursor-pointer transition focus:outline-hidden"
+              className="appearance-none pl-8 pr-8 py-1.5 text-xs bg-white text-black font-semibold border border-neutral-300 rounded-md cursor-pointer transition focus:outline-hidden"
             >
               <option value="standard">Model: Standard</option>
               <option value="fast">Model: Fast</option>
             </select>
-            <Layers className="w-3.5 h-3.5 text-neutral-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <ChevronDown className="w-3.5 h-3.5 text-neutral-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Layers className="w-3.5 h-3.5 text-black absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-3.5 h-3.5 text-black absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
 
           {/* How to use? Button */}
           <button
             type="button"
             onClick={() => setIsHowToUseOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-white hover:bg-neutral-100 border border-neutral-300 rounded-lg shadow-2xs transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-neutral-800 text-white border border-neutral-300 rounded-md shadow-2xs transition-colors cursor-pointer"
           >
-            <Play className="w-3 h-3 text-neutral-900 fill-neutral-900" />
+            <Play className="w-3 h-3 text-neutral-100 fill-neutral-100" />
             <span>How to use?</span>
           </button>
         </div>
@@ -551,7 +551,11 @@ export default function StudioPage() {
                       type="button"
                       onClick={() => setIsVideoExpanded((prev) => !prev)}
                       className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-neutral-700 hover:text-neutral-900 border border-neutral-200/80 shadow-xs transition-all duration-200 active:scale-95 cursor-pointer backdrop-blur-md"
-                      title={isVideoExpanded ? "Minimize to standard view" : "Expand to full view"}
+                      title={
+                        isVideoExpanded
+                          ? "Minimize to standard view"
+                          : "Expand to full view"
+                      }
                     >
                       {isVideoExpanded ? (
                         <Minimize2 className="w-4 h-4" />
@@ -781,6 +785,15 @@ export default function StudioPage() {
                 onSelectPrompt={(prompt) => {
                   setPromptText(prompt);
                   showToast(`Selected prompt: "${prompt}"`, "info");
+                }}
+                onTryOn={(product) => {
+                  if (product.title) {
+                    setPromptText(product.title);
+                  }
+                  showToast(
+                    `Applied for Try-On: "${product.title}"`,
+                    "success",
+                  );
                 }}
               />
             </div>

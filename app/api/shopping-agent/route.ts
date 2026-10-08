@@ -29,28 +29,14 @@ export async function POST(req: Request) {
         };
 
         try {
-          // Step 1: Initial Status
-          sendEvent('status', { step: 'thinking', text: '🧠 Analyzing request & session memory...' });
+          // Fast planner model call to determine if search is genuinely needed
+          const modelToUse = openai('gpt-4.1-mini');
 
-          // Step 2: Check Wardrobe Memory
-          let memoryContext = '';
-          if (wardrobeMemory && wardrobeMemory.length > 0) {
-            sendEvent('status', { step: 'memory', text: `👔 Accessing memory (${wardrobeMemory.length} items)...` });
-            memoryContext = `User Wardrobe History in Memory:\n` +
-              wardrobeMemory.map((m: WardrobeMemoryItem) => `- ${m.title} (${m.color || ''}, ${m.fabric || ''}, ${m.pattern || ''})`).join('\n');
-            
-            sendEvent('tool_call', {
-              name: 'readWardrobeMemory',
-              result: { itemsCount: wardrobeMemory.length, items: wardrobeMemory },
-            });
-          }
-
-          // Step 3: Vision analysis if image provided
           let visionAnalysisText = '';
           if (uploadedImageUrl) {
-            sendEvent('status', { step: 'vision', text: '👁️ Running vision model on uploaded garment...' });
+            sendEvent('status', { step: 'vision', text: 'Analyzing uploaded garment...' });
             try {
-              const analysis = await analyzeGarmentImage(uploadedImageUrl, visionModel);
+              const analysis = await analyzeGarmentImage(uploadedImageUrl, 'gpt-4o-mini');
               visionAnalysisText = `Garment Visual Analysis: ${analysis.garmentType}, Color: ${analysis.primaryColor}, Pattern: ${analysis.pattern}, Fabric: ${analysis.fabric}. Vibe: ${analysis.styleVibe}.`;
               sendEvent('tool_call', { name: 'analyzeUploadedGarment', result: analysis });
             } catch (vErr) {
@@ -58,48 +44,43 @@ export async function POST(req: Request) {
             }
           }
 
-          // Step 4: Determine search query
-          sendEvent('status', { step: 'planning', text: '🎯 Generating parallel search terms...' });
-
-          // Fast planner model call to determine search queries
-          let modelToUse;
-          try {
-            modelToUse = openai(orchestratorModel);
-          } catch {
-            modelToUse = openai('gpt-4o-mini');
+          let memoryContext = '';
+          if (wardrobeMemory && wardrobeMemory.length > 0) {
+            memoryContext = `User Wardrobe History in Memory:\n` +
+              wardrobeMemory.map((m: WardrobeMemoryItem) => `- ${m.title} (${m.color || ''}, ${m.fabric || ''}, ${m.pattern || ''})`).join('\n');
           }
 
-          const plannerRes = await generateText({
-            model: modelToUse,
-            prompt: `You are a fashion shopping planner.
-User message: "${lastUserMsg}"
-${memoryContext}
+          // Check if product shopping search is needed
+          let searchConfig = { needsSearch: false, query: '' };
+          try {
+            const plannerRes = await generateText({
+              model: modelToUse,
+              prompt: `User message: "${lastUserMsg}"
 ${visionAnalysisText}
 
-Identify if a product search is needed. Return ONLY a JSON object with:
+Determine if the user is asking to find/buy/search/recommend clothing items or products (e.g. "red jackets", "shirts under 500", "recommend outfits", "what to wear with this").
+If the user is just saying hello, asking general questions ("what can you do?", "how are you"), or conversing without requesting shopping items, set "needsSearch" to false.
+
+Return JSON ONLY:
 {
   "needsSearch": boolean,
-  "query": "search query string for Indian e-commerce",
-  "category": "top" | "bottom" | "shoes" | "accessory"
+  "query": "concise search query for fashion shopping or empty string"
 }`,
-          });
+            });
 
-          let searchConfig = { needsSearch: true, query: lastUserMsg, category: 'top' };
-          try {
             const cleanJson = plannerRes.text.replace(/```json|```/g, '').trim();
             searchConfig = JSON.parse(cleanJson);
           } catch {
-            // Fallback: search with last user message
-            searchConfig = { needsSearch: true, query: lastUserMsg, category: 'top' };
+            searchConfig = { needsSearch: false, query: '' };
           }
 
           let fetchedProducts: Product[] = [];
 
-          // Step 5: Execute Parallel Search across Google Shopping, Amazon.in, and Google Lens
+          // Execute search ONLY if genuinely needed
           if (searchConfig.needsSearch && searchConfig.query) {
             sendEvent('status', {
               step: 'searching',
-              text: `⚡ Searching Google Shopping, Amazon.in & Google Lens in parallel for "${searchConfig.query}"...`,
+              text: `Searching items for "${searchConfig.query}"...`,
             });
 
             const searchResult = await searchParallelEngines({
@@ -108,7 +89,6 @@ Identify if a product search is needed. Return ONLY a JSON object with:
               apiKey: serpApiKey,
             });
 
-            // Cap to top 12 best curated products
             fetchedProducts = searchResult.products.slice(0, 12);
 
             sendEvent('tool_call', {
@@ -122,7 +102,6 @@ Identify if a product search is needed. Return ONLY a JSON object with:
               },
             });
 
-            // Emit top 12 products directly to frontend
             sendEvent('products', {
               query: searchResult.query,
               products: fetchedProducts,
@@ -131,27 +110,25 @@ Identify if a product search is needed. Return ONLY a JSON object with:
             });
           }
 
-          // Step 6: Stream Final Stylist Answer
-          sendEvent('status', { step: 'stylist', text: '✨ Formulating expert stylist advice...' });
+          // Clear status before streaming text
+          sendEvent('status', { step: 'generating', text: '' });
 
           const compactProductSummary = fetchedProducts
             .slice(0, 12)
-            .map((p) => `- [${p.store}] ${p.title} | ${p.priceText || 'Check Price'}`)
+            .map((p, idx) => `${idx + 1}. [${p.store}] "${p.title}" — Price: ${p.priceText || (p.price ? `₹${p.price}` : 'Check store')}`)
             .join('\n');
 
-          const systemPrompt = `You are an elite AI Personal Stylist and Fashion Director.
-Your task is to give sharp, aesthetic, and expert fashion advice based on the user's request.
+          const systemPrompt = `You are an expert, stylish AI Fashion Copilot.
 
-${memoryContext}
-${visionAnalysisText}
-
-Products Discovered via Search:
-${compactProductSummary || 'None fetched'}
-
-STYLING GUIDELINES:
-1. Explain WHY the recommended pieces work together (color harmony, texture contrast, silhouette).
-2. Refer to the items by name and store (e.g. "On AJIO you can pick the Beige Linen Trousers for ₹1,899"). DO NOT paste long raw URLs into your text response, because the UI renders full interactive product cards with direct buy buttons on the right side!
-3. Be stylish, encouraging, and authoritative.`;
+ROLE & GUIDELINES:
+1. Provide thoughtful, personalized fashion styling advice tailored to the user's request.
+2. When products are found from the search (listed below), highlight 2-3 standout options and explain why their style, fit, color, or brand matches what the user is looking for.
+3. Keep the response well-structured and engaging (2-3 concise paragraphs or bullet points).
+4. Do NOT output raw web URLs (interactive cards with Try-On and Visit buttons are displayed directly in the UI).
+5. For greetings or general questions, respond warmly and helpfully.
+${memoryContext ? `\nWardrobe Memory:\n${memoryContext}` : ''}
+${visionAnalysisText ? `\n${visionAnalysisText}` : ''}
+${compactProductSummary ? `\nProducts Found (Top 12 Curated Results):\n${compactProductSummary}` : ''}`;
 
           const textStream = streamText({
             model: modelToUse,
@@ -163,7 +140,7 @@ STYLING GUIDELINES:
             sendEvent('text_delta', { text: chunk });
           }
 
-          sendEvent('status', { step: 'complete', text: 'Done' });
+          sendEvent('status', { step: 'complete', text: '' });
           sendEvent('done', {});
           controller.close();
         } catch (err: any) {
