@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "@/lib/auth-client";
 import { useSidebar } from "./SidebarContext";
+import { useCreditsQuery } from "@/lib/queries/credits";
 import {
   Home,
   Wand2,
@@ -25,6 +26,7 @@ interface SidebarProps {
 export function Sidebar({ children, headerContent }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { data: credits = 100 } = useCreditsQuery(session?.user?.id);
   const { isCollapsed, toggleSidebar, setIsCollapsed } = useSidebar();
 
   const navItems = [
@@ -188,8 +190,8 @@ export function Sidebar({ children, headerContent }: SidebarProps) {
           </div>
 
           {!isCollapsed && (
-            <div className="flex items-center gap-1 border border-neutral-200 bg-orange-300/80 py-1 px-2 rounded-md text-[10px] font-inter shrink-0">
-              Credits: <span>100</span>
+            <div className="flex items-center gap-1 border border-neutral-200 bg-orange-300/80 py-1 px-2 rounded-md text-[10px] font-inter shrink-0 font-medium text-neutral-900">
+              Credits: <span className="font-semibold">{credits}</span>
             </div>
           )}
         </div>
