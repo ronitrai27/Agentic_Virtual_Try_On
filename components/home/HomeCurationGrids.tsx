@@ -111,7 +111,7 @@ export function HomeCurationGrids() {
               {(currentFestival?.styles || []).map((style, idx) => (
                 <Link
                   key={idx}
-                  href={`/studio?prompt=${encodeURIComponent(style.prompt)}&garment=${encodeURIComponent(
+                  href={`/home/studio?prompt=${encodeURIComponent(style.prompt)}&garment=${encodeURIComponent(
                     style.image,
                   )}`}
                   className="group shrink-0 w-[140px] sm:w-[155px] md:w-[170px] lg:w-[185px] xl:w-[200px] h-[195px] sm:h-[215px] md:h-[235px] lg:h-[255px] xl:h-[270px] rounded-2xl border border-zinc-200/80 bg-white p-2 hover:border-orange-300 hover:shadow-md transition-all overflow-hidden relative flex items-center justify-center"
@@ -170,7 +170,7 @@ export function HomeCurationGrids() {
               {(weather?.styles || []).map((style, idx) => (
                 <Link
                   key={idx}
-                  href={`/studio?prompt=${encodeURIComponent(style.prompt)}&garment=${encodeURIComponent(
+                  href={`/home/studio?prompt=${encodeURIComponent(style.prompt)}&garment=${encodeURIComponent(
                     style.image,
                   )}`}
                   className="group shrink-0 w-[140px] sm:w-[155px] md:w-[170px] lg:w-[185px] xl:w-[200px] h-[195px] sm:h-[215px] md:h-[235px] lg:h-[255px] xl:h-[270px] rounded-2xl border border-zinc-200/80 bg-white p-2 hover:border-orange-300 hover:shadow-md transition-all overflow-hidden relative flex items-center justify-center"

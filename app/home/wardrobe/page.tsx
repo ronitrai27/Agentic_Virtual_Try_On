@@ -220,7 +220,7 @@ export default function WardrobePage() {
                 to save your favorite looks here.
               </p>
               <Link
-                href="/studio"
+                href="/home/studio"
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-neutral-900 text-white rounded-lg text-xs font-semibold hover:bg-neutral-800 transition active:scale-95 shadow-sm"
               >
                 <span>Go to Studio</span>

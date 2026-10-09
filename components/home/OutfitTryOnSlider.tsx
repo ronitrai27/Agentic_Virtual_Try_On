@@ -92,7 +92,7 @@ export function OutfitTryOnSlider({ className = "" }: OutfitTryOnSliderProps) {
             </p>
 
             <Link
-              href="/studio"
+              href="/home/studio"
               className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-lg text-xs sm:text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-sm group"
             >
               <Drama className="w-3.5 h-3.5 text-orange-300" />
@@ -179,7 +179,7 @@ export function OutfitTryOnSlider({ className = "" }: OutfitTryOnSliderProps) {
             </p>
 
             <Link
-              href="/studio"
+              href="/home/studio"
               className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-lg text-xs sm:text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 active:scale-[0.98] transition-all shadow-sm group"
             >
               <Drama className="w-3.5 h-3.5 text-orange-300" />
